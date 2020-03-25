@@ -1,0 +1,123 @@
+#!/bin/bash
+
+
+GETPKG='sudo pacman -S --noconfirm'
+
+#### additional fonts
+
+$GETPKG ttf-dejavu ttf-liberation noto-fonts
+
+
+# sudo ln -s /etc/fonts/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d
+# sudo ln -s /etc/fonts/conf.avail/10-sub-pixel-rgb.conf /etc/fonts/conf.d
+# sudo ln -s /etc/fonts/conf.avail/11-lcdfilter-default.conf /etc/fonts/conf.d
+
+
+gpg --keyserver hkp://pgp.mit.edu --recv-keys 1A09227B1F435A33
+
+cd /opt/AUR
+git clone https://aur.archlinux.org/ttf-unifont.git
+cd ttf-unifont
+makepkg -si --noconfirm
+
+
+cd /opt/AUR
+git clone https://aur.archlinux.org/siji-git.git
+cd siji-git
+makepkg -si --noconfirm
+
+
+# troubleshooting
+# xset +fp /usr/share/fonts/misc # Inform the X server of new directories
+# xset fp rehash                # Forces a new rescan
+
+
+fc-cache
+# fc-match
+# fc-list
+
+
+
+
+tools () {
+  $GETPKG sxiv
+  $GETPKG scrot mpv mpd mpc
+  $GETPKG ranger
+  $GETPKG entr
+  $GETPKG gtk2fontsel
+}
+
+
+filesystems() {
+   $GETPKG ntfs-3g exfat-utils
+   $GETPKG nfs-utils samba
+}
+
+
+wintools () {
+    cd /opt/AUR
+    git clone https://aur.archlinux.org/dislocker.git
+    cd dislocker
+    makepkg -si
+}
+
+
+timesync () {
+  $GETPKG chrony
+  sudo systemctl enable --now chronyd.service
+  echo "edit /etc/chrony.conf accordingly"
+}
+
+webtools () {
+  $GETPKG firefox
+
+  $GETPKG chromium
+  # use linux-lts for stablility
+  # actions to stablize interface
+  # chrome://flags
+  # - Override software rendering list = Enabled
+  # - Accelerated 2D canvas = Disabled
+  # chrome://settings
+  # - theme - use gtk
+
+}
+
+remotemgmt () {
+  $GETPKG openssh freerdp remmina
+}
+
+containers () {
+  $GETPKG docker docker-compose
+}
+
+virtual () {
+  sudo pacman -U https://archive.archlinux.org/packages/v/virtualbox-host-dkms/virtualbox-host-dkms-6.0.14-4-x86_64.pkg.tar.xz
+  sudo pacman -U https://archive.archlinux.org/packages/v/virtualbox/virtualbox-6.0.14-4-x86_64.pkg.tar.xz
+  # reboot
+  # sudo vboxmanage extpack install Oracle_VM_VirtualBox_Extension_Pack-6.0.14.vbox-extpac
+}
+
+attachedstorage () {
+  $GETPKG samba nfs-utils rsync
+}
+
+
+devtools () {
+   $GETPKG python-pip
+}
+
+
+# main calls
+
+tools
+filesystems
+timesync
+webtools
+remotemgmt
+containers
+#virtual
+attachedstorage
+devtools
+
+
+

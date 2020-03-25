@@ -1,0 +1,55 @@
+
+
+
+xbindkeys --key
+
+xbindkeys --poll-rc
+
+
+"(Scheme function)"
+    m:0x0 + c:121
+    XF86AudioMute
+
+"(Scheme function)"
+    m:0x0 + c:122
+    XF86AudioLowerVolume
+
+"(Scheme function)"
+    m:0x0 + c:123
+    XF86AudioRaiseVolume
+
+"(Scheme function)"
+    m:0x0 + c:198
+    XF86AudioMicMute
+
+"(Scheme function)"
+    m:0x0 + c:232
+    XF86MonBrightnessDown
+
+"(Scheme function)"
+    m:0x0 + c:233
+    XF86MonBrightnessUp
+
+"(Scheme function)"
+    m:0x0 + c:235
+    XF86Display
+
+"(Scheme function)"
+    m:0x0 + c:246
+    XF86WLAN
+
+"(Scheme function)"
+    m:0x0 + c:179
+    XF86Tools
+
+"(Scheme function)"
+    m:0x0 + c:245
+    XF86Bluetooth
+
+"(Scheme function)"
+    m:0x0 + c:164
+    XF86Favorites
+
+
+
+

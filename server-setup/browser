@@ -1,0 +1,17 @@
+#!/bin/bash
+
+GETPKG='sudo pacman -S --noconfirm'
+
+$GETPKG python python-pip xclip
+
+$GETPKG firefox chromium torbrowser-launcher
+
+sudo pip install selenium tbselenium pyautogui pyperclip
+
+$GETPKG openvpn openconnect
+
+
+GETAURPKG='yay -S --aur --noconfirm'
+
+$GETAURPKG google-chrome
+

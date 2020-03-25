@@ -1,0 +1,272 @@
+#!/bin/bash
+
+PRIDISK=/dev/sda
+NEWHOSTNAME="workstation"
+NEWUSER="user"
+PWHASH='$6$sa72QCnkIt1IDa32$.Gyc4v7hYfAkxeDs3pa4SMpMCN2aMfrOkGpPddzSOHhjE0hmTaeJeLFMNpyg6VUCH1QJjUYIGK56yHFWvQesq/'
+CRYPTPHRASE="ODg3ZDUxYjk4MDE3ZDhkOTQ0NmM3MDQ1"
+
+REGION="Taiwan"
+MIRRORSERVER="http://archlinux.cs.nctu.edu.tw/\$repo/os/\$arch"
+
+
+## DO NOT CHANGE THESE VARIABLES
+BOOT_TYPE="" #legacy or uefi
+CPUMODEL=`grep -m 1 "^model name" /proc/cpuinfo`
+GETPKG="pacman -Sy --noconfirm"
+
+
+####################
+#### mirror setup
+####################
+
+specific_mirror () {
+
+cat << EOF > /etc/pacman.d/mirrorlist
+Server = ${MIRRORSERVER}
+EOF
+}
+
+region_mirror () {
+  cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig
+
+  grep -A 1 -i ${REGION} /etc/pacman.d/mirrorlist.orig | sed 's/--//' > /etc/pacman.d/mirrorlist
+}
+
+
+cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig
+
+specific_mirror
+
+
+####################
+#### partition setup
+####################
+
+efivar -l >/dev/null 2>&1
+
+if [[ $? -eq 0 ]]; then
+	BOOT_TYPE="uefi"
+else
+	BOOT_TYPE="legacy"
+fi
+
+part_legacy () {
+	printf "n\np\n1\n\n+200M\na\nt\n6\nw\n" | fdisk ${PRIDISK}
+	printf "n\np\n2\n\n+2G\nt\n2\n82\nw\n" | fdisk ${PRIDISK}
+	printf "n\np\n3\n\n\nt\n3\n8e\nw\n" | fdisk ${PRIDISK}
+}
+
+part_uefi () {
+	sgdisk -n 1:2048:+512M -t 1:EF00  -g ${PRIDISK}
+	sgdisk -n 2::+2G -t 2:8200  -g ${PRIDISK}
+	sgdisk -n 3:: -t 3:8e00  -g ${PRIDISK}
+}
+
+
+
+case "${BOOT_TYPE}" in
+	"legacy")
+		part_legacy
+		;;
+	"uefi")
+		part_uefi
+		;;
+	*) ;;
+esac
+
+sleep 10
+partprobe ${PRIDISK}
+
+sleep 10
+
+# setup boot and swap partiitons
+mkfs.fat ${PRIDISK}1
+
+mkswap ${PRIDISK}2
+swapon ${PRIDISK}2
+
+
+
+printf "%s" "$CRYPTPHRASE" | cryptsetup luksFormat /dev/sda3 -
+printf "%s" "$CRYPTPHRASE" | cryptsetup luksOpen /dev/sda3 lvm
+
+sleep 3
+
+pvcreate /dev/mapper/lvm
+vgcreate vg_00 /dev/mapper/lvm
+lvcreate -L 20G vg_00 -n root
+mkfs.ext4 -F /dev/mapper/vg_00-root
+
+lvcreate -l 100%free vg_00 -n home
+mkfs.ext4 -F /dev/mapper/vg_00-home
+
+
+mount /dev/mapper/vg_00-root /mnt
+mkdir /mnt/{boot,home}
+
+mount /dev/mapper/vg_00-home /mnt/home
+mount ${PRIDISK}1 /mnt/boot
+
+
+####################
+#### pacstrap base
+####################
+
+pacstrap /mnt/ base
+
+case "${BOOT_TYPE}" in
+	"legacy")
+		genfstab -p /mnt >> /mnt/etc/fstab
+		;;
+	"uefi")
+		genfstab -U /mnt >> /mnt/etc/fstab
+		;;
+	*) ;;
+esac
+
+
+####################
+#### minimal setup
+####################
+
+cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
+
+arch-chroot /mnt /bin/bash <<EOF
+
+cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.orig
+
+ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+hwclock --systohc
+
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+echo ${NEWHOSTNAME} | tee /etc/hostname
+
+echo "127.0.1.1       ${NEWHOSTNAME}.localdomain ${NEWHOSTNAME}" > /etc/hosts
+
+pacman -Syu
+$GETPKG  mkinitcpio
+
+if echo "${CPUMODEL}" | grep -iqF intel; then
+  $GETPKG  intel-ucode
+fi
+
+if echo "${CPUMODEL}" | grep -iqF amd; then
+  $GETPKG  amd-ucode
+fi
+
+$GETPKG  linux-lts linux-lts-headers
+$GETPKG  lvm2
+$GETPKG  vim dhcpcd wpa_supplicant
+
+ln -s /usr/bin/vim /usr/bin/vi
+
+systemctl enable dhcpcd
+EOF
+
+sed -i -r "s|(^root:)|\1${PWHASH}|" /mnt/etc/shadow
+
+
+####################
+#### generating initramfs
+####################
+
+arch-chroot /mnt /bin/bash <<EOF
+cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.orig
+
+if grep -e '^HOOKS.*lvm2.*' /etc/mkinitcpio.conf ; then
+  echo lvm module already included
+else
+  sed -i -r 's/^(HOOKS.*)filesystems(.*)/\1encrypt lvm2 filesystems\2/' /etc/mkinitcpio.conf
+fi
+
+mkinitcpio -p linux-lts
+
+EOF
+
+
+
+####################
+#### boot setup
+####################
+
+
+boot_legacy () {
+arch-chroot /mnt /bin/bash <<EOF
+$GETPKG grub
+grub-install --target=i386-pc --recheck /dev/sda --modules="part_gpt part_msdos"
+
+sed -i -r 's/^(GRUB_CMDLINE_LINUX_DEFAULT=).*/\1"cryptdevice=\/dev\/sda3:vg00 ipv6.disable=1"/' /etc/default/grub
+
+grub-mkconfig -o /boot/grub/grub.cfg
+EOF
+}
+
+boot_uefi () {
+arch-chroot /mnt /bin/bash <<EOF
+$GETPKG grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB --modules="part_gpt part_msdos"
+
+sed -i -r 's/^(GRUB_CMDLINE_LINUX_DEFAULT=).*/\1"cryptdevice=\/dev\/sda3:vg00 ipv6.disable=1"/' /etc/default/grub
+
+grub-mkconfig -o /boot/grub/grub.cfg
+EOF
+}
+
+
+
+case "${BOOT_TYPE}" in
+	"legacy")
+		boot_legacy
+		;;
+	"uefi")
+		boot_uefi
+		;;
+	*) ;;
+esac
+
+
+####################
+#### setup user and additional service
+####################
+
+create_user () {
+
+USERNAME=$1
+
+arch-chroot /mnt /bin/bash <<EOF
+useradd -u 1000 -m $USERNAME
+usermod -aG wheel $USERNAME
+usermod -aG users $USERNAME
+usermod -aG audio $USERNAME
+
+pacman -S --noconfirm sudo
+
+# uncomment wheel
+sed -i 's/# \(\%wheel.*NOPASSWD.*\)/\1/' /etc/sudoers
+
+# setup location for AUR packages
+mkdir /opt/AUR
+chown 1000:1000 /opt/AUR
+
+EOF
+}
+
+enable_sshd () {
+arch-chroot /mnt /bin/bash <<EOF
+
+$GETPKG openssh
+systemctl enable sshd
+
+EOF
+}
+
+create_user $NEWUSER
+
+enable_sshd
+
+
+

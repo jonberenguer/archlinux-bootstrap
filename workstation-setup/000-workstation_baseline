@@ -1,0 +1,315 @@
+#!/bin/bash
+
+GETPKG='sudo pacman -S --noconfirm'
+
+$GETPKG --needed base-devel
+$GETPKG git
+
+$GETPKG xorg-server xorg-xinit
+
+$GETPKG \
+ bspwm \
+ sxhkd \
+ terminus-font  \
+ xorg-xset  \
+ xorg-xsetroot  \
+ xorg-xrandr  \
+ dmenu  \
+ rxvt-unicode
+
+
+$GETPKG xf86-video-vesa
+
+# driver - opengl
+$GETPKG xf86-video-vmware
+# AMD
+$GETPKG xf86-video-amdgpu
+$GETPKG xf86-video-ati
+# Intel
+$GETPKG xf86-video-intel
+# NVIDIA
+$GETPKG xf86-video-nouveau
+
+$GETPKG alsa-utils alsa-firmware
+
+amixer sset Master unmute
+amixer sset Headphone unmute
+amixer sset Speaker unmute
+
+$GETPKG noto-fonts noto-fonts-cjk terminus-font
+$GETPKG xorg-fonts-100dpi
+fc-cache
+
+$GETPKG ttf-dejavu
+
+#### xresources
+$GETPKG xorg-xrdb
+
+#### lightdm setup
+$GETPKG lightdm lightdm-gtk-greeter
+
+#### urxvt-resize-font ext
+$GETPKG urxvt-perls
+
+$GETPKG man-db man-pages
+mandb
+
+sudo mkdir /opt/AUR
+sudo chmown 1000:1000 /opt/AUR
+
+####
+
+mkdir -p $HOME/opt
+mkdir -p $HOME/.config/{bspwm,sxhkd,Xresources.d}
+
+
+cp /usr/share/doc/bspwm/examples/bspwmrc ~/.config/bspwm/
+cp /usr/share/doc/bspwm/examples/sxhkdrc ~/.config/sxhkd/
+
+
+#### bashrc
+cat << 'EOF' > $HOME/.bashrc
+#
+# $HOME/.bashrc
+#
+
+# if not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+
+if [ -f $HOME/.bash_aliases ]; then
+  . $HOME/.bash_aliases
+else
+  alias ls='ls --color=auto'
+fi
+
+export PATH=$PATH:$HOME/opt
+
+
+#PS1='[\u@\h \W]\$ '
+
+PS1='\!|\[\e[32m\]\u\[\e[m\]|\[\e[36m\]\h\[\e[m\]:\W $ '
+
+
+EOF
+
+#### initial baseline configs
+
+#### bash_aliases
+cat << 'EOF' > $HOME/.bash_aliases
+alias ls='ls --color=auto'
+alias ll='ls -al --color=auto'
+alias vi='vim'
+EOF
+
+#### xserverc
+cat << 'EOF' > $HOME/.xserverrc
+#!/bin/bash
+
+exec /usr/bin/Xorg -nolisten tcp "$@" vt$XDG_VTNR
+EOF
+
+#### xinitrc
+cat << 'EOF' > $HOME/.xinitrc
+#!/bin/sh
+
+# Make sure this is before the 'exec' command or it won't be sourced.
+[ -f /etc/xprofile ] && . /etc/xprofile
+[ -f $HOME/.xprofile ] && . $HOME/.xprofile
+
+[[ -f $HOME/.Xresources ]] && xrdb -merge -I$HOME $HOME/.Xresources
+
+xsetroot -cursor_name left_ptr
+
+exec bspwm
+EOF
+
+#### vimrc
+cat << 'EOF' > $HOME/.vimrc
+set mouse-=a
+
+"set number
+set relativenumber
+EOF
+
+#### profile
+cat << 'EOF' > $HOME/.profile
+export XDG_CONFIG_HOME="$HOME/.config"
+EOF
+
+#### xprofile
+#cat << 'EOF' > $HOME/.xprofile
+#xrandr --output Virtual1 --mode 1920x1200
+#EOF
+
+
+
+
+#### polybar
+cd /opt/AUR
+git clone https://aur.archlinux.org/polybar.git
+cd polybar
+# verify PKGBUILD
+makepkg -si --noconfirm
+
+cp /usr/share/doc/polybar/config $HOME/.config/polybar/config
+
+
+#### polybar startup and config
+mkdir $HOME/.config/polybar
+cat << 'EOF' > $HOME/.config/polybar/launch.sh
+#!/usr/bin/env bash
+
+# Terminate already running bar instances
+killall -q polybar
+# If all your bars have ipc enabled, you can also use
+# polybar-msg cmd quit
+
+# Launch bar1 and bar2
+#echo "---" | tee -a /tmp/polybar1.log /tmp/polybar2.log
+#polybar bar1 >>/tmp/polybar1.log 2>&1 &
+#polybar bar2 >>/tmp/polybar2.log 2>&1 &
+
+polybar example > /dev/null 2>&1
+
+echo "Bars launched..."
+EOF
+
+
+chmod +x $HOME/.config/polybar/launch.sh
+
+cat << EOF >> $HOME/.config/bspwm/bspwmrc
+nohup $HOME/.config/polybar/launch.sh &
+EOF
+
+
+#### urxvt-resize-font ext
+sudo pacman -S --noconfirm urxvt-perls
+
+cd /opt/AUR
+git clone https://aur.archlinux.org/urxvt-resize-font-git.git
+
+cd urxvt-resize-font-git
+# verify PKGBUILD
+makepkg -si --noconfirm
+
+
+#### screensaver
+sudo pacman -S --noconfirm xscreensaver
+
+cat << 'EOF' >> $HOME/.config/sxhkd/sxhkdrc
+
+# screen lock
+ctrl + alt + l
+        xscreensaver-command -lock
+
+EOF
+
+
+### xresources
+
+#### Xresources
+cat << 'EOF' > $HOME/.Xresources
+
+#include ".config/Xresources.d/rxvt-unicode"
+
+# #include ".config/Xresources.d/rxvt-unicode-solarized.dark"
+#include ".config/Xresources.d/rxvt-unicode-ashes.dark"
+
+
+EOF
+
+
+cat << 'EOF' > $HOME/.config/Xresources.d/rxvt-unicode
+
+urxvt.font: xft:inconsolata:size=11:autohint=true:antialias=false
+
+urxvt.perl-ext-common: resize-font
+
+urxvt.iso14755: false
+urxvt.iso14755_52: false
+urxvt.scrollBar: false
+
+EOF
+
+
+# https://terminal.sexy
+#### rvxt themes
+
+cat << 'EOF' > $HOME/.config/Xresources.d/rxvt-unicode-solarized.dark
+! special
+urxvt.foreground:   #93a1a1
+urxvt.background:   #002b36
+urxvt.cursorColor:  #93a1a1
+
+! black
+urxvt*color0:       #002b36
+urxvt*color8:       #657b83
+
+! red
+urxvt*color1:       #dc322f
+urxvt*color9:       #dc322f
+
+! green
+urxvt*color2:       #859900
+urxvt*color10:      #859900
+
+! yellow
+urxvt*color3:       #b58900
+urxvt*color11:      #b58900
+
+! blue
+urxvt*color4:       #268bd2
+urxvt*color12:      #268bd2
+
+! magenta
+urxvt*color5:       #6c71c4
+urxvt*color13:      #6c71c4
+
+! cyan
+urxvt*color6:       #2aa198
+urxvt*color14:      #2aa198
+
+! white
+urxvt*color7:       #93a1a1
+urxvt*color15:      #fdf6e3
+EOF
+
+cat << 'EOF' > $HOME/.config/Xresources.d/rxvt-unicode-ashes.dark
+! special
+urxvt.foreground:   #c7ccd1
+urxvt.background:   #1c2023
+urxvt.cursorColor:  #c7ccd1
+
+! black
+urxvt*color0:       #1c2023
+urxvt*color8:       #747c84
+
+! red
+urxvt*color1:       #c7ae95
+urxvt*color9:       #c7ae95
+
+! green
+urxvt*color2:       #95c7ae
+urxvt*color10:      #95c7ae
+
+! yellow
+urxvt*color3:       #aec795
+urxvt*color11:      #aec795
+
+! blue
+urxvt*color4:       #ae95c7
+urxvt*color12:      #ae95c7
+
+! magenta
+urxvt*color5:       #c795ae
+urxvt*color13:      #c795ae
+
+! cyan
+urxvt*color6:       #95aec7
+urxvt*color14:      #95aec7
+
+! white
+urxvt*color7:       #c7ccd1
+urxvt*color15:      #f3f4f5
+EOF

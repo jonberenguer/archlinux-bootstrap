@@ -1,0 +1,116 @@
+#!/bin/bash
+
+
+REPOMOUNT='192.168.0.11:/repo /usr/share/nginx/html nfs rw,relatime,noauto,user,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=192.168.0.11,mountvers=3,mountport=30000,mountproto=udp,local_lock=none,addr=192.168.0.11   0 0'
+
+GETPKG='sudo pacman -Sy --noconfirm'
+
+$GETPKG --needed base-devel
+$GETPKG git
+$GETPKG rsync nfs-utils nginx
+
+
+$GETPKG perl-libwww
+
+cd /opt/AUR
+git clone https://aur.archlinux.org/perl-lockfile-simple.git
+cd perl-lockfile-simple
+makepkg -si --noconfirm
+
+cd /opt/AUR
+git clone https://aur.archlinux.org/debmirror.git
+cd debmirror
+makepkg -si --noconfirm
+
+
+echo ${REPOMOUNT} | sudo tee -a /etc/fstab
+
+mount /usr/share/nginx/html
+
+sudo sed -i 's/#user.*/user reposync;/' /etc/nginx/nginx.conf
+
+sudo systemctl enable --now nginx
+
+
+sudo sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
+
+sudo sed -i 's/%wheel ALL=(ALL) NOPASSWD: ALL/#%wheel ALL=(ALL) NOPASSWD: ALL/' /etc/sudoers
+
+
+####
+# post scripts to sync repos locally, needs to be fixed and scripted to add to schedule
+
+rsync_func() {
+
+cd /usr/share/nginx/html/archlinux
+rsync -rtlvH --delete-after \
+  --delay-updates --safe-links \
+  "rsync://ftp.tku.edu.tw/archlinux/" ./
+
+
+cat << 'EOF' > sync-kali.bash
+#!/bin/sh
+
+# Don't touch the user's keyring, have our own instead
+export GNUPGHOME=/kali/keyrings
+
+# Architecture (i386, powerpc, amd64, etc.)
+arch=amd64
+
+# Section (main,contrib,non-free)
+section=main,contrib,non-free
+
+# Release of the system (squeeze,lenny,stable,testing,etc)
+release=kali-rolling
+
+# Server name, minus the protocol and the path at the end
+server=ftp.tku.edu.tw
+
+# Path from the main server, so http://my.web.server/$dir, Server dependant
+inPath=/kali
+
+# Protocol to use for transfer (http, ftp, hftp, rsync)
+proto=http
+
+# Directory to store the mirror in
+outPath=/mnt/kali
+
+# Start script
+
+debmirror -a $arch \
+--no-source \
+--no-check-gpg \
+--md5sums \
+--progress \
+--passive \
+--verbose \
+-s $section \
+-h $server \
+-d $release \
+-r $inPath \
+-e $proto \
+$outPath
+EOF
+
+# gpg --no-default-keyring --keyring /home/repo/keyrings/ubuntu/trustedkeys.gpg --import /root/usr/share/keyrings/ubuntu-archive-keyring.gpg
+# I had to download kali-archive-keyring_2015.2_all.deb and explort the gpg key to my folder at /kali/keyrings/trustedkeys.gpg
+# The debmirror is downloading the repository to /media/disk4/kali , where i will point later port 80 of nginx
+
+cd /usr/share/nginx/html/centos/8-stream
+rsync -rtlvH --delete-after --delay-updates --safe-links "rsync://ftp.yzu.edu.tw/Linux/CentOS/8-stream/" ./
+
+cd /usr/share/nginx/html/epel-8-x86_64
+rsync -avSHP --delete rsync://fedora.cs.nctu.edu.tw/fedora-epel/8/Everything/x86_64/ ./
+
+http://fedora.cs.nctu.edu.tw/epel/8/Everything/
+http://fedora.cs.nctu.edu.tw/epel/8/Everything/x86_64/
+rsync://fedora.cs.nctu.edu.tw/fedora-epel
+
+rsync --list-only rsync://fedora.cs.nctu.edu.tw/fedora-epel
+
+
+http://kali.cs.nctu.edu.tw/kali-images/current/
+http://kali.cs.nctu.edu.tw/kali/
+
+}
+

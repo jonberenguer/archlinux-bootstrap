@@ -1,0 +1,29 @@
+
+
+# procedure to add clonezilla to grub menu
+
+download iso
+
+copy iso to /boot
+
+
+cat << 'EOF' > /etc/grub.d/40_custom
+
+menuentry "clonezilla-live" {
+ISO="/clonezilla-live-2.6.4-10-amd64.iso"
+search --set -f $ISO
+loopback loop (hd0,gpt1)$ISO
+linux (loop)/live/vmlinuz  boot=live components config findiso=$ISO ip=frommedia toram=filesystem.squashfs union=overlay username=user locales=en_US.UTF-8 keyboard-layouts=us
+initrd (loop)/live/initrd.img
+}
+
+EOF
+
+grub-mkconfig -o /boot/grub/grub.cfg
+
+
+# note in order to get the grub path (hd0,gpt1)
+# in the grub menu press c then ls
+# match pattern based on list
+# sda1 hd0,gpt1
+ 

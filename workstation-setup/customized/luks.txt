@@ -1,0 +1,32 @@
+
+
+cryptsetup -y -v luksFormat /dev/nvme0n1p4 
+
+cryptsetup luksOpen /dev/nvme0n1p4 spacers
+
+ls -l /dev/mapper/spacers
+
+cryptsetup -v status spacers
+
+cryptsetup luksDump /dev/nvme0n1p4
+
+dd if=/dev/zero of=/dev/mapper/backup2 status=progress
+
+mkfs.ext4 /dev/mapper/spacers
+
+
+cryptsetup luksOpen /dev/nvme0n1p4 spacers
+mount /dev/mapper/spacers /spacers
+df -H
+mount
+
+
+umount /spacers
+cryptsetup luksClose spacers
+
+
+blkid -t TYPE=crypto_LUKS
+
+cryptsetup luksAddKey DEV /PATH/TO/KEYFILE
+cryptsetup luksRemoveKey /dev/xvdc
+
