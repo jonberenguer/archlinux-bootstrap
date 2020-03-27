@@ -2,9 +2,9 @@
 
 GETPKG='sudo pacman -S --noconfirm'
 
-$GETPKG python python-pip xclip
+$GETPKG python python-pip xclip tk
 
-$GETPKG firefox chromium torbrowser-launcher
+$GETPKG firefox chromium tor torbrowser-launcher
 
 sudo pip install selenium tbselenium pyautogui pyperclip
 
