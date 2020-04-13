@@ -1,0 +1,23 @@
+#!/bin/bash
+
+cat << 'EOF' > /usr/bin/disable-internalsd
+#!/bin/bash
+echo "2-3" | tee /sys/bus/usb/drivers/usb/unbind
+EOF
+
+chmod 700 /usr/bin/disable-internalsd
+
+cat << 'EOF' > /lib/systemd/system/disable-internalsd.service
+[Unit]
+Description=Description
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /usr/bin/disable-internalsd
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable disable-internalsd.service

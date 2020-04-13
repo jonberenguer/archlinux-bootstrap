@@ -1,15 +1,39 @@
 #!/bin/bash
 
-PRIDISK=/dev/sda
-NEWHOSTNAME="workstation"
-NEWUSER="user"
-PWHASH='$6$sa72QCnkIt1IDa32$.Gyc4v7hYfAkxeDs3pa4SMpMCN2aMfrOkGpPddzSOHhjE0hmTaeJeLFMNpyg6VUCH1QJjUYIGK56yHFWvQesq/'
+
+# PWHASH='$6$sa72QCnkIt1IDa32$.Gyc4v7hYfAkxeDs3pa4SMpMCN2aMfrOkGpPddzSOHhjE0hmTaeJeLFMNpyg6VUCH1QJjUYIGK56yHFWvQesq/'
 # has password: password123!
 # run openssl passwd -6 password123!
+# PWHASH="`openssl passwd -6`"
+
+echo "Enter primary disk [/dev/sda]:"
+read PRIDISK
+[ -z "$PRIDISK" ] && PRIDISK=/dev/sda
+
+echo "Enter hostname [workstation]:"
+read NEWHOSTNAME
+[ -z "$NEWHOSTNAME" ] && NEWHOSTNAME="workstation"
+
+echo "Enter username [user]:"
+read NEWUSER
+[ -z "$NEWUSER" ] && NEWUSER="user"
+
+echo "Enter new password"
+PWHASH="`openssl passwd -6`"
+
+echo "Enter region [Taiwan]:"
+read REGION
+[ -z "$REGION" ] && REGION="Taiwan"
+
+echo "Enter mirror url [local server]:"
+read MIRRORSERVER
+[ -z "$MIRRORSERVER" ] && MIRRORSERVER="http://archlinux.cs.nctu.edu.tw/\$repo/os/\$arch"
 
 
-REGION="Taiwan"
-MIRRORSERVER="http://archlinux.cs.nctu.edu.tw/\$repo/os/\$arch"
+echo "Is virtual:"
+read ISVIRTUAL
+[ -z "$ISVIRTUAL" ] && ISVIRTUAL=1
+
 
 
 ## DO NOT CHANGE THESE VARIABLES

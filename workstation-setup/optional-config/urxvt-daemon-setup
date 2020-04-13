@@ -1,0 +1,47 @@
+#!/bin/bash
+
+cat << 'EOF' > ~/opt/urxvtcu
+#!/bin/sh
+
+urxvtc "$@"
+if [ $? -eq 2 ]; then
+   urxvtd -q -o -f
+   urxvtc "$@"
+fi
+EOF
+
+chmod 500 ~/opt/urxvtcu
+
+cat << 'EOF' > ~/.config/systemd/user/urxvtd.service
+[Unit]
+Description=Urxvt Terminal Daemon
+Requires=urxvtd.socket
+
+[Service]
+ExecStart=/usr/bin/urxvtd -o -q
+Environment=RXVT_SOCKET=%t/urxvtd-%H
+
+[Install]
+WantedBy=MyTarget.target
+EOF
+
+
+cat << 'EOF' > ~/.config/systemd/user/urxvtd.socket
+[Unit]
+Description=urxvt daemon (socket activation)
+Documentation=man:urxvtd(1) man:urxvt(1)
+
+[Socket]
+ListenStream=%t/urxvtd-%H
+
+[Install]
+WantedBy=sockets.target
+EOF
+
+
+
+cat << 'EOF' > ~/.config/bspwm/bspwmrc
+systemctl --user start urxvtd.service
+EOF
+
+
