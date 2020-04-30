@@ -62,6 +62,11 @@ pair <mac>
 trust <mac>
 connect <mac>
 
+rfkill list
+rfkill unblock|block <id>
+
+
+
 # configs
 
 /etc/bluetooth/main.conf
