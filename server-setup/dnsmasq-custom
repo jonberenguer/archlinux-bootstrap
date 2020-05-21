@@ -1,0 +1,32 @@
+#!/bin/bash
+
+GETPKG='sudo pacman -S --noconfirm'
+
+$GETPKG dnsmasq
+
+cat << 'EOF' >> /etc/dnsmasq.conf
+
+listen-address=127.0.0.1
+
+cache-size=1000
+
+no-resolv
+
+server=9.9.9.9
+server=1.1.1.1
+
+# comment out the above server lines and
+# uncomment the follow for specific host to resolve
+
+#address=/#/127.0.0.1
+#server=/google.com/9.9.9.9
+EOF
+
+sudo systemctl enable --now dnsmasq.service
+
+cat << EOF > /etc/resolv.conf
+nameserver 127.0.0.1
+EOF
+
+echo "Setup static ip, route, and domain_name_servers=127.0.0.1 for interface"
+

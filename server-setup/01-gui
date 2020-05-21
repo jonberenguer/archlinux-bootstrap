@@ -46,6 +46,9 @@ mkdir -p $HOME/.config/{bspwm,sxhkd}
 cp /usr/share/doc/bspwm/examples/bspwmrc ~/.config/bspwm/
 cp /usr/share/doc/bspwm/examples/sxhkdrc ~/.config/sxhkd/
 
+chmod +x ~/.config/bspwm/bspwmrc
+chmod +x ~/.config/sxhkd/sxhkdrc
+
 
 $GETPKG ttf-dejavu
 
@@ -277,5 +280,8 @@ echo allowed_users=anybody | sudo tee -a /etc/X11/Xwrapper.config
 sudo systemctl enable --now xrdp.service
 sudo systemctl enable --now xrdp-sesman.service
 }
+
+enable_rdp
+
 
 
