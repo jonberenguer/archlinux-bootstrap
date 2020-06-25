@@ -33,6 +33,8 @@ audio () {
   amixer sset Master unmute
   amixer sset Headphone unmute
   amixer sset Speaker unmute
+
+  $GETPKG pulseaudio pulseaudio-alsa pulsemixer
 }
 
 
