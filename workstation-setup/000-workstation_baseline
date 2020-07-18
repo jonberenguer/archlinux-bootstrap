@@ -36,6 +36,8 @@ amixer sset Master unmute
 amixer sset Headphone unmute
 amixer sset Speaker unmute
 
+$GETPKG pulseaudio pulseaudio-alsa pulsemixer
+
 $GETPKG noto-fonts noto-fonts-cjk terminus-font
 $GETPKG xorg-fonts-100dpi
 fc-cache
