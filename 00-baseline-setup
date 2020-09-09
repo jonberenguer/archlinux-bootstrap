@@ -211,7 +211,7 @@ ln -s /usr/bin/vim /usr/bin/vi
 
 systemctl enable dhcpcd
 
-echo "${PW}\n${PW}" | passwd root
+echo -e "${PW}\n${PW}" | passwd root
 EOF
 
 #sed -i -r "s|(^root:)|\1${PWHASH}|" /mnt/etc/shadow
@@ -299,7 +299,7 @@ sed -i 's/# \(\%wheel.*NOPASSWD.*\)/\1/' /etc/sudoers
 mkdir /opt/AUR
 chown 1000:1000 /opt/AUR
 
-echo "${PW}\n${PW}" | passwd $USERNAME
+echo -e "${PW}\n${PW}" | passwd $USERNAME
 
 EOF
 
