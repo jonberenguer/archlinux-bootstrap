@@ -295,6 +295,8 @@ mkdir /opt/AUR
 chown 1000:1000 /opt/AUR
 
 EOF
+
+sed -i -r "s|(^${USERNAME}:)|\1${PWHASH}|" /mnt/etc/shadow
 }
 
 enable_sshd () {
