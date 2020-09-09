@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-# PWHASH='$6$sa72QCnkIt1IDa32$.Gyc4v7hYfAkxeDs3pa4SMpMCN2aMfrOkGpPddzSOHhjE0hmTaeJeLFMNpyg6VUCH1QJjUYIGK56yHFWvQesq/'
 # has password: password123!
 # run openssl passwd -6 password123!
 # PWHASH="`openssl passwd -6`"
